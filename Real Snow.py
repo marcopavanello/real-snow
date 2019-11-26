@@ -56,41 +56,52 @@ class SNOW_OT_Create(Operator):
 		
 		if (context.selected_objects):
 			for o in context.selected_objects:
+				# prepare meshes
 				bpy.ops.object.select_all(action='DESELECT')
 				o.select_set(True)
 				context.view_layer.objects.active = o
 				bpy.ops.object.duplicate()
+				bpy.ops.object.convert(target='MESH')
 				obj1 = context.active_object
 				bpy.ops.object.duplicate()
 				obj2 = context.active_object
 				bpy.ops.object.select_all(action='DESELECT')
 				obj1.select_set(True)
 				bpy.ops.object.mode_set(mode = 'EDIT')
-				me = obj2.data
-				bm_orig = bmesh.from_edit_mesh(me)
+				# apply modifier if present
+				if obj1.modifiers:
+					me = obj1.to_mesh(bpy.context.scene, True, 'PREVIEW', calc_tessface=False)
+					bm = bmesh.new()
+					bm.from_mesh(me)
+					bpy.data.meshes.remove(me)
+				bm_orig = bmesh.from_edit_mesh(obj2.data)
 				bm = bm_orig.copy()
 				bm.transform(o.matrix_world)
 				bm.normal_update()
+				# find upper faces
 				fo = [ele.index for ele in bm.faces if Vector((0, 0, -1.0)).angle(ele.normal, 4.0) < (math.pi/2.0+0.5)]
 				bpy.ops.mesh.select_all(action='DESELECT')
 				obj_e = bpy.context.edit_object
-				
+				bm.free()
+				# select upper faces
 				for i in fo:
 					mesh = bmesh.from_edit_mesh(obj_e.data)
 					for fm in mesh.faces:
 						if (fm.index == i):
 							fm.select = True
 					bmesh.update_edit_mesh(obj_e.data, True)
-				
+				# delete unneccessary faces
 				bme = bmesh.from_edit_mesh(obj_e.data)
 				faces_select = [f for f in bme.faces if f.select]
 				bmesh.ops.delete(bme, geom=faces_select, context='FACES_KEEP_BOUNDARY')
 				bmesh.update_edit_mesh(obj_e.data, True)
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-				ball = bpy.data.metaballs.new("Snow Ball")
-				ballobj = bpy.data.objects.new("Snow Ball Object", ball)
+				bme.free()
+				# add metaball
+				ball = bpy.data.metaballs.new("Snow")
+				ballobj = bpy.data.objects.new("Snow", ball)
 				bpy.context.scene.collection.objects.link(ballobj)
-				ball.resolution = height
+				ball.resolution = 0.5*height+0.1
 				ball.threshold = 1.3
 				element = ball.elements.new()
 				element.radius = 1.5
@@ -98,14 +109,12 @@ class SNOW_OT_Create(Operator):
 				ballobj.scale = [0.09, 0.09, 0.09]
 				context.view_layer.objects.active = obj2
 				a = area(obj2)
-				number = a*100*(height**-1.5)*(coverage/100)
-				print(number)
+				number = int(a*30*(height**-2)*(coverage/100))
+				# add particles
 				bpy.ops.object.particle_system_add()
 				particles = obj2.particle_systems[0]
-				particles.name = 'Snow'
 				psettings = particles.settings
 				psettings.type = 'HAIR'
-				psettings.name = 'Snow'
 				psettings.render_type = 'OBJECT'
 				psettings.instance_object = ballobj
 				psettings.particle_size = height
@@ -119,16 +128,13 @@ class SNOW_OT_Create(Operator):
 				bpy.ops.object.convert(target='MESH')
 				snow = bpy.context.active_object
 				snow.scale = [0.09, 0.09, 0.09]
-				snow.select_set(True)
 				bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
 				bpy.ops.object.select_all(action='DESELECT')
 				obj2.select_set(True)
 				bpy.ops.object.particle_system_remove()
 				bpy.ops.object.delete()
-				bpy.ops.object.select_all(action='DESELECT')
 				obj1.select_set(True)
 				bpy.ops.object.delete()
-				bpy.ops.object.select_all(action='DESELECT')
 				snow.select_set(True)
 				# add modifier
 				snow.modifiers.new("Decimate", 'DECIMATE')
@@ -151,7 +157,7 @@ class SnowSettings(PropertyGroup):
 	coverage : bpy.props.IntProperty(
 		name = "Coverage",
 		description = "Percentage of the object to be covered with snow",
-		default = 50,
+		default = 100,
 		min = 0,
 		max = 100,
 		subtype = 'PERCENTAGE'
@@ -161,6 +167,8 @@ class SnowSettings(PropertyGroup):
 		name = "Height",
 		description = "Height of the snow",
 		default = 0.3,
+		step = 1,
+		precision = 2,
 		min = 0,
 		max = 1
 		)
