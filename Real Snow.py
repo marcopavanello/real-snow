@@ -61,6 +61,8 @@ class SNOW_OT_Create(Operator):
 			context.window_manager.progress_begin(0, 10)
 			timer=0
 			for o in context.selected_objects:
+				# timer
+				context.window_manager.progress_update(timer)
 				# duplicate mesh
 				bpy.ops.object.select_all(action='DESELECT')
 				o.select_set(True)
@@ -90,10 +92,11 @@ class SNOW_OT_Create(Operator):
 						if (fm.index == i):
 							fm.select = True
 				# delete unneccessary faces
-				faces_select = [f for f in mesh.faces if f.select]
-				bmesh.ops.delete(mesh, geom=faces_select, context='FACES_KEEP_BOUNDARY')
+				if fo:
+					faces_select = [f for f in mesh.faces if f.select]
+					bmesh.ops.delete(mesh, geom=faces_select, context='FACES_KEEP_BOUNDARY')
+					mesh.free()
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-				mesh.free()
 				# add metaball
 				ball = bpy.data.metaballs.new("Snow")
 				ballobj = bpy.data.objects.new("Snow", ball)
@@ -135,9 +138,17 @@ class SNOW_OT_Create(Operator):
 				# add modifier
 				snow.modifiers.new("Decimate", 'DECIMATE')
 				snow.modifiers["Decimate"].ratio = 0.5
+				# place inside collection
+				context.view_layer.active_layer_collection = context.view_layer.layer_collection
+				if not "Snow" in bpy.data.collections:
+					coll = bpy.data.collections.new("Snow")
+					context.scene.collection.children.link(coll)
+				else:
+					coll = bpy.data.collections["Snow"]
+				coll.objects.link(snow)
+				context.view_layer.layer_collection.collection.objects.unlink(snow)
 				# update progress bar
 				timer=timer+((100/lenght)/1000)
-				context.window_manager.progress_update(timer)
 			# end progress bar
 			context.window_manager.progress_end()
 
