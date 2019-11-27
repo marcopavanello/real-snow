@@ -61,47 +61,39 @@ class SNOW_OT_Create(Operator):
 			context.window_manager.progress_begin(0, 10)
 			timer=0
 			for o in context.selected_objects:
-				# prepare meshes
+				# duplicate mesh
 				bpy.ops.object.select_all(action='DESELECT')
 				o.select_set(True)
 				context.view_layer.objects.active = o
-				bpy.ops.object.duplicate()
-				bpy.ops.object.convert(target='MESH')
-				obj1 = context.active_object
-				bpy.ops.object.duplicate()
-				obj2 = context.active_object
+				new_o = o.copy()
+				new_o.data = o.data.copy()
+				context.collection.objects.link(new_o)
 				bpy.ops.object.select_all(action='DESELECT')
-				obj1.select_set(True)
+				context.view_layer.objects.active = new_o
+				new_o.select_set(True)
+				# apply modifiers
+				bpy.ops.object.convert(target='MESH')
+				# get faces data
 				bpy.ops.object.mode_set(mode = 'EDIT')
-				# apply modifier if present
-				if obj1.modifiers:
-					me = obj1.to_mesh(bpy.context.scene, True, 'PREVIEW', calc_tessface=False)
-					bm = bmesh.new()
-					bm.from_mesh(me)
-					bpy.data.meshes.remove(me)
-				bm_orig = bmesh.from_edit_mesh(obj2.data)
+				bm_orig = bmesh.from_edit_mesh(new_o.data)
 				bm = bm_orig.copy()
 				bm.transform(o.matrix_world)
 				bm.normal_update()
 				# find upper faces
 				fo = [ele.index for ele in bm.faces if Vector((0, 0, -1.0)).angle(ele.normal, 4.0) < (math.pi/2.0+0.5)]
 				bpy.ops.mesh.select_all(action='DESELECT')
-				obj_e = bpy.context.edit_object
 				bm.free()
 				# select upper faces
 				for i in fo:
-					mesh = bmesh.from_edit_mesh(obj_e.data)
+					mesh = bmesh.from_edit_mesh(new_o.data)
 					for fm in mesh.faces:
 						if (fm.index == i):
 							fm.select = True
-					bmesh.update_edit_mesh(obj_e.data, True)
 				# delete unneccessary faces
-				bme = bmesh.from_edit_mesh(obj_e.data)
-				faces_select = [f for f in bme.faces if f.select]
-				bmesh.ops.delete(bme, geom=faces_select, context='FACES_KEEP_BOUNDARY')
-				bmesh.update_edit_mesh(obj_e.data, True)
+				faces_select = [f for f in mesh.faces if f.select]
+				bmesh.ops.delete(mesh, geom=faces_select, context='FACES_KEEP_BOUNDARY')
 				bpy.ops.object.mode_set(mode = 'OBJECT')
-				bme.free()
+				mesh.free()
 				# add metaball
 				ball = bpy.data.metaballs.new("Snow")
 				ballobj = bpy.data.objects.new("Snow", ball)
@@ -112,21 +104,23 @@ class SNOW_OT_Create(Operator):
 				element.radius = 1.5
 				element.stiffness = 0.75
 				ballobj.scale = [0.09, 0.09, 0.09]
-				context.view_layer.objects.active = obj2
-				a = area(obj2)
-				number = int(a*50*(height**-2)*((coverage/100)**2))
+				context.view_layer.objects.active = new_o
+				a = area(new_o)
 				# add particles
+				number = int(a*50*(height**-2)*((coverage/100)**2))
 				bpy.ops.object.particle_system_add()
-				particles = obj2.particle_systems[0]
+				particles = new_o.particle_systems[0]
 				psettings = particles.settings
 				psettings.type = 'HAIR'
 				psettings.render_type = 'OBJECT'
-				psettings.instance_object = ballobj
-				psettings.particle_size = height
-				psettings.count = number
 				# generate random number for seed
 				random_seed = randint(0, 1000)
 				particles.seed = random_seed
+				# set particles object
+				psettings.particle_size = height
+				psettings.instance_object = ballobj
+				psettings.count = number
+				# convert particles to mesh
 				bpy.ops.object.select_all(action='DESELECT')
 				context.view_layer.objects.active = ballobj
 				ballobj.select_set(True)
@@ -135,10 +129,7 @@ class SNOW_OT_Create(Operator):
 				snow.scale = [0.09, 0.09, 0.09]
 				bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
 				bpy.ops.object.select_all(action='DESELECT')
-				obj2.select_set(True)
-				bpy.ops.object.particle_system_remove()
-				bpy.ops.object.delete()
-				obj1.select_set(True)
+				new_o.select_set(True)
 				bpy.ops.object.delete()
 				snow.select_set(True)
 				# add modifier
