@@ -20,6 +20,7 @@ from bpy.props import *
 from random import randint
 from bpy.types import Panel, Operator, PropertyGroup
 from mathutils import Vector
+import time
 
 
 # Panel
@@ -55,6 +56,10 @@ class SNOW_OT_Create(Operator):
 		height = context.scene.snow.height
 		
 		if (context.selected_objects):
+			# start progress bar
+			lenght = len(context.selected_objects)
+			context.window_manager.progress_begin(0, 10)
+			timer=0
 			for o in context.selected_objects:
 				# prepare meshes
 				bpy.ops.object.select_all(action='DESELECT')
@@ -109,7 +114,7 @@ class SNOW_OT_Create(Operator):
 				ballobj.scale = [0.09, 0.09, 0.09]
 				context.view_layer.objects.active = obj2
 				a = area(obj2)
-				number = int(a*30*(height**-2)*(coverage/100))
+				number = int(a*50*(height**-2)*((coverage/100)**2))
 				# add particles
 				bpy.ops.object.particle_system_add()
 				particles = obj2.particle_systems[0]
@@ -139,6 +144,11 @@ class SNOW_OT_Create(Operator):
 				# add modifier
 				snow.modifiers.new("Decimate", 'DECIMATE')
 				snow.modifiers["Decimate"].ratio = 0.5
+				# update progress bar
+				timer=timer+((100/lenght)/1000)
+				context.window_manager.progress_update(timer)
+			# end progress bar
+			context.window_manager.progress_end()
 
 		return {'FINISHED'}
 
