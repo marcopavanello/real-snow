@@ -144,7 +144,7 @@ class SNOW_OT_Create(Operator):
 				snow.cycles.use_adaptive_subdivision = True
 				# place inside collection
 				context.view_layer.active_layer_collection = context.view_layer.layer_collection
-				if not "Snow" in bpy.data.collections:
+				if not "Snow" in context.scene.collection.children:
 					coll = bpy.data.collections.new("Snow")
 					context.scene.collection.children.link(coll)
 				else:
@@ -153,6 +153,9 @@ class SNOW_OT_Create(Operator):
 				context.view_layer.layer_collection.collection.objects.unlink(snow)
 				# add snow material
 				add_material(snow)
+				# parent with object
+				snow.parent = o
+				snow.matrix_parent_inverse = o.matrix_world.inverted()
 				# update progress bar
 				timer=timer+((100/lenght)/1000)
 			# end progress bar
