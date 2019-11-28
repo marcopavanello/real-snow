@@ -102,7 +102,7 @@ class SNOW_OT_Create(Operator):
 				ball = bpy.data.metaballs.new("Snow")
 				ballobj = bpy.data.objects.new("Snow", ball)
 				bpy.context.scene.collection.objects.link(ballobj)
-				ball.resolution = 0.5*height+0.1
+				ball.resolution = 0.7*height+0.3
 				ball.threshold = 1.3
 				element = ball.elements.new()
 				element.radius = 1.5
@@ -141,6 +141,7 @@ class SNOW_OT_Create(Operator):
 				snow.modifiers["Decimate"].ratio = 0.5
 				snow.modifiers.new("Subdiv", "SUBSURF")
 				snow.modifiers["Subdiv"].render_levels = 1
+				snow.modifiers["Subdiv"].quality = 1
 				snow.cycles.use_adaptive_subdivision = True
 				# place inside collection
 				context.view_layer.active_layer_collection = context.view_layer.layer_collection
@@ -200,7 +201,7 @@ class SnowSettings(PropertyGroup):
 		default = 0.3,
 		step = 1,
 		precision = 2,
-		min = 0,
+		min = 0.1,
 		max = 1
 		)
 
