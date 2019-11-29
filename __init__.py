@@ -137,6 +137,7 @@ class SNOW_OT_Create(Operator):
 				bpy.ops.object.delete()
 				snow.select_set(True)
 				# add modifier
+				bpy.ops.object.transform_apply(scale = True)
 				snow.modifiers.new("Decimate", 'DECIMATE')
 				snow.modifiers["Decimate"].ratio = 0.5
 				snow.modifiers.new("Subdiv", "SUBSURF")
