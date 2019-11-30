@@ -225,8 +225,8 @@ class SnowSettings(PropertyGroup):
 		)
 
 	vertices : bpy.props.BoolProperty(
-		name = "Selected Vertices",
-		description = "Add snow only where there are selected vertices",
+		name = "Selected Faces",
+		description = "Add snow only on selected faces",
 		default = False
 		)
 
