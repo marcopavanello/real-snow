@@ -57,11 +57,14 @@ class SNOW_OT_Create(Operator):
 		height = context.scene.snow.height
 		
 		if (context.selected_objects):
+			# get list of selected objects except non-mesh objects
+			snow_objects = [o for o in context.selected_objects if o.type == 'MESH']
+			snow_list = []
 			# start progress bar
-			lenght = len(context.selected_objects)
+			lenght = len(snow_objects)
 			context.window_manager.progress_begin(0, 10)
 			timer=0
-			for o in context.selected_objects:
+			for o in snow_objects:
 				# timer
 				context.window_manager.progress_update(timer)
 				# duplicate mesh
@@ -158,8 +161,13 @@ class SNOW_OT_Create(Operator):
 				# parent with object
 				snow.parent = o
 				snow.matrix_parent_inverse = o.matrix_world.inverted()
+				# add snow to list
+				snow_list.append(snow)
 				# update progress bar
 				timer=timer+((100/lenght)/1000)
+			# select created snow
+			for s in snow_list:
+				s.select_set(True)
 			# end progress bar
 			context.window_manager.progress_end()
 
