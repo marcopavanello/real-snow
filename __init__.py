@@ -41,6 +41,12 @@ class REAL_PT_snow(Panel):
 		col.prop(settings, 'coverage', slider=True)
 		col.prop(settings, 'height')
 		
+		layout.use_property_split = True
+		layout.use_property_decorate = False
+		flow = layout.grid_flow(row_major=True, columns=0, even_columns=False, even_rows=False, align=True)
+		col = flow.column()
+		col.prop(settings, 'vertices')
+		
 		row = layout.row(align=True)
 		row.scale_y = 1.5
 		row.operator("snow.create", text="Add Snow", icon="FREEZE")
@@ -55,6 +61,7 @@ class SNOW_OT_Create(Operator):
 	def execute(self, context):
 		coverage = context.scene.snow.coverage
 		height = context.scene.snow.height
+		vertices = context.scene.snow.vertices
 		
 		if (context.selected_objects):
 			# get list of selected objects except non-mesh objects
@@ -86,24 +93,27 @@ class SNOW_OT_Create(Operator):
 				bm.transform(o.matrix_world)
 				bm.normal_update()
 				# find upper faces
-				fo = [ele.index for ele in bm.faces if Vector((0, 0, -1.0)).angle(ele.normal, 4.0) < (math.pi/2.0+0.5)]
-				bpy.ops.mesh.select_all(action='DESELECT')
+				if vertices:
+					selected_faces = [f.index for f in bm.faces if f.select]
+				down_faces = [e.index for e in bm.faces if Vector((0, 0, -1.0)).angle(e.normal, 4.0) < (math.pi/2.0+0.5)]
 				bm.free()
+				bpy.ops.mesh.select_all(action='DESELECT')
 				# select upper faces
-				for i in fo:
-					mesh = bmesh.from_edit_mesh(new_o.data)
-					for fm in mesh.faces:
-						if (fm.index == i):
-							fm.select = True
+				mesh = bmesh.from_edit_mesh(new_o.data)
+				for f in mesh.faces:
+					if vertices:
+						if not f.index in selected_faces:
+							f.select = True
+					if f.index in down_faces:
+						f.select = True
 				# delete unneccessary faces
-				if fo:
-					faces_select = [f for f in mesh.faces if f.select]
-					bmesh.ops.delete(mesh, geom=faces_select, context='FACES_KEEP_BOUNDARY')
-					mesh.free()
+				faces_select = [f for f in mesh.faces if f.select]
+				bmesh.ops.delete(mesh, geom=faces_select, context='FACES_KEEP_BOUNDARY')
+				mesh.free()
 				bpy.ops.object.mode_set(mode = 'OBJECT')
 				# add metaball
-				ball = bpy.data.metaballs.new("Snow")
-				ballobj = bpy.data.objects.new("Snow", ball)
+				ball = bpy.data.metaballs.new("SnowBall")
+				ballobj = bpy.data.objects.new("SnowBall", ball)
 				bpy.context.scene.collection.objects.link(ballobj)
 				ball.resolution = 0.7*height+0.3
 				ball.threshold = 1.3
@@ -212,6 +222,12 @@ class SnowSettings(PropertyGroup):
 		precision = 2,
 		min = 0.1,
 		max = 1
+		)
+
+	vertices : bpy.props.BoolProperty(
+		name = "Selected Vertices",
+		description = "Add snow only where there are selected vertices",
+		default = False
 		)
 
 
