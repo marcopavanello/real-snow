@@ -250,10 +250,13 @@ def add_material(obj):
 	principled.inputs[0].default_value[0] = 0.904
 	principled.inputs[0].default_value[1] = 0.904
 	principled.inputs[0].default_value[2] = 0.904
+	principled.inputs[1].default_value = 1
+	principled.inputs[2].default_value[0] = 0.36
+	principled.inputs[2].default_value[1] = 0.46
+	principled.inputs[2].default_value[2] = 0.6
 	principled.inputs[3].default_value[0] = 0.904
 	principled.inputs[3].default_value[1] = 0.904
 	principled.inputs[3].default_value[2] = 0.904
-	principled.inputs[1].default_value = 1
 	principled.inputs[5].default_value = 0.224
 	principled.inputs[7].default_value = 0.1
 	principled.inputs[13].default_value = 0.1
