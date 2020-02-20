@@ -3,11 +3,11 @@ bl_info = {
 	"name": "Real Snow",
 	"description": "Generate snow mesh",
 	"author": "Wolf",
-	"version": (1, 0),
+	"version": (1, 1),
 	"blender": (2, 81, 0),
 	"location": "View 3D > Properties Panel",
-	"wiki_url": "https://3d-wolf.com/products/snow.html",
-	"tracker_url": "https://3d-wolf.com/products/snow.html",
+	"wiki_url": "https://github.com/macio97/Real-Snow",
+	"tracker_url": "https://github.com/macio97/Real-Snow/issues",
 	"support": "COMMUNITY",
 	"category": "Mesh"
 	}
@@ -17,11 +17,11 @@ import bpy
 import math
 import bmesh
 import os
-from bpy.props import *
+import time
+from bpy.props import BoolProperty, FloatProperty, IntProperty, PointerProperty
 from random import randint
 from bpy.types import Panel, Operator, PropertyGroup
 from mathutils import Vector
-import time
 
 
 # Panel
@@ -184,6 +184,7 @@ class SNOW_OT_Create(Operator):
 		return {'FINISHED'}
 
 
+# Calculate mesh area
 def area(obj):
 	bm = bmesh.new()
 	bm.from_mesh(obj.data)
@@ -322,7 +323,7 @@ def add_material(obj):
 
 # Properties
 class SnowSettings(PropertyGroup):
-	coverage : bpy.props.IntProperty(
+	coverage : IntProperty(
 		name = "Coverage",
 		description = "Percentage of the object to be covered with snow",
 		default = 100,
@@ -331,7 +332,7 @@ class SnowSettings(PropertyGroup):
 		subtype = 'PERCENTAGE'
 		)
 
-	height : bpy.props.FloatProperty(
+	height : FloatProperty(
 		name = "Height",
 		description = "Height of the snow",
 		default = 0.3,
@@ -341,7 +342,7 @@ class SnowSettings(PropertyGroup):
 		max = 1
 		)
 
-	vertices : bpy.props.BoolProperty(
+	vertices : BoolProperty(
 		name = "Selected Faces",
 		description = "Add snow only on selected faces",
 		default = False
@@ -361,7 +362,7 @@ register, unregister = bpy.utils.register_classes_factory(classes)
 def register():
 	for cls in classes:
 		bpy.utils.register_class(cls)
-	bpy.types.Scene.snow = bpy.props.PointerProperty(type=SnowSettings)
+	bpy.types.Scene.snow = PointerProperty(type=SnowSettings)
 
 
 # Unregister
