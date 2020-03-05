@@ -82,21 +82,21 @@ class SNOW_OT_Create(Operator):
             bpy.ops.object.select_all(action='DESELECT')
             o.select_set(True)
             context.view_layer.objects.active = o
-            snow_object = o.copy()
-            snow_object.data = o.data.copy()
+            object_eval = o.evaluated_get(context.view_layer.depsgraph)
+            mesh_eval = bpy.data.meshes.new_from_object(object_eval)
+            snow_object = bpy.data.objects.new("Snow", mesh_eval)
+            snow_object.matrix_world = o.matrix_world
             context.collection.objects.link(snow_object)
             bpy.ops.object.select_all(action='DESELECT')
             context.view_layer.objects.active = snow_object
             snow_object.select_set(True)
-            # apply modifiers
-            bpy.ops.object.convert(target='MESH')
-            # get faces data
             bpy.ops.object.mode_set(mode = 'EDIT')
             bm_orig = bmesh.from_edit_mesh(snow_object.data)
             bm = bm_orig.copy()
             bm.transform(o.matrix_world)
             bm.normal_update()
-            upper_faces(vertices, bm, snow_object)
+            # get faces data
+            delete_faces(vertices, bm, snow_object)
             ballobj = add_metaballs(context, height, snow_object)
             context.view_layer.objects.active = snow_object
             surface_area = area(snow_object)
@@ -118,7 +118,7 @@ class SNOW_OT_Create(Operator):
             # add snow to list
             snow_list.append(snow)
             # update progress bar
-            timer=timer+((100/length)/1000)
+            timer += 0.1 / length
         # select created snow meshes
         for s in snow_list:
             s.select_set(True)
@@ -184,7 +184,7 @@ def add_metaballs(context, height: float, snow_object: bpy.types.Object) -> bpy.
     return ballobj
 
 
-def upper_faces(vertices, bm, snow_object: bpy.types.Object):
+def delete_faces(vertices, bm, snow_object: bpy.types.Object):
     # find upper faces
     if vertices:
         selected_faces = [f.index for f in bm.faces if f.select]
