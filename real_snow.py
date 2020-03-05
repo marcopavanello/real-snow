@@ -130,6 +130,7 @@ class SNOW_OT_Create(Operator):
 
 def add_modifiers(snow):
     bpy.ops.object.transform_apply(location=False, scale=True, rotation=False)
+    # decimate the mesh to get rid of some visual artifacts
     snow.modifiers.new("Decimate", 'DECIMATE')
     snow.modifiers["Decimate"].ratio = 0.5
     snow.modifiers.new("Subdiv", "SUBSURF")
@@ -139,8 +140,8 @@ def add_modifiers(snow):
 
 
 def add_particles(context, surface_area: float, height: float, coverage: float, snow_object: bpy.types.Object, ballobj: bpy.types.Object):
-    # generate particles
-    number = int(a*50*(height**-2)*((coverage/100)**2))
+    # approximate the number of particles to be emitted
+    number = int(surface_area*50*(height**-2)*((coverage/100)**2))
     bpy.ops.object.particle_system_add()
     particles = snow_object.particle_systems[0]
     psettings = particles.settings
@@ -173,6 +174,7 @@ def add_metaballs(context, height: float, snow_object: bpy.types.Object) -> bpy.
     ball = bpy.data.metaballs.new(ball_name)
     ballobj = bpy.data.objects.new(ball_name, ball)
     bpy.context.scene.collection.objects.link(ballobj)
+    # these settings have proven to work on a large amount of scenarios
     ball.resolution = 0.7*height+0.3
     ball.threshold = 1.3
     element = ball.elements.new()
@@ -186,6 +188,7 @@ def upper_faces(vertices, bm, snow_object: bpy.types.Object):
     # find upper faces
     if vertices:
         selected_faces = [f.index for f in bm.faces if f.select]
+    # based on a certain angle, find all faces not pointing up
     down_faces = [e.index for e in bm.faces if Vector((0, 0, -1.0)).angle(e.normal, 4.0) < (math.pi/2.0+0.5)]
     bm.free()
     bpy.ops.mesh.select_all(action='DESELECT')
