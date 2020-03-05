@@ -59,78 +59,75 @@ class SNOW_OT_Create(Operator):
     bl_description = "Create snow"
     bl_options = {'REGISTER', 'UNDO'}
 
+    @classmethod
+    def poll(cls, context) -> bool:
+        return bool(context.selected_objects)
+
     def execute(self, context):
         coverage = context.scene.snow.coverage
         height = context.scene.snow.height
         vertices = context.scene.snow.vertices
 
-        if (context.selected_objects):
-            # get list of selected objects except non-mesh objects
-            snow_objects = [o for o in context.selected_objects if o.type == 'MESH']
-            snow_list = []
-            # start UI progress bar
-            lenght = len(snow_objects)
-            context.window_manager.progress_begin(0, 10)
-            timer=0
-            for o in snow_objects:
-                # timer
-                context.window_manager.progress_update(timer)
-                # duplicate mesh
-                bpy.ops.object.select_all(action='DESELECT')
-                o.select_set(True)
-                context.view_layer.objects.active = o
-                new_o = o.copy()
-                new_o.data = o.data.copy()
-                context.collection.objects.link(new_o)
-                bpy.ops.object.select_all(action='DESELECT')
-                context.view_layer.objects.active = new_o
-                new_o.select_set(True)
-                # apply modifiers
-                bpy.ops.object.convert(target='MESH')
-                # get faces data
-                bpy.ops.object.mode_set(mode = 'EDIT')
-                bm_orig = bmesh.from_edit_mesh(new_o.data)
-                bm = bm_orig.copy()
-                bm.transform(o.matrix_world)
-                bm.normal_update()
-                # delete all faces not pointing up
-                upper_faces(vertices, bm, new_o)
-                # add metaballs
-                ballobj = add_metaballs(context, height, new_o)
-                # calculate surface area
-                a = area(new_o)
-                # add particles
-                snow = add_particles(context, a, height, coverage, new_o, ballobj)
-                # add modifiers
-                add_modifiers(snow)
-                # place inside collection
-                context.view_layer.active_layer_collection = context.view_layer.layer_collection
-                if not "Snow" in context.scene.collection.children:
-                    coll = bpy.data.collections.new("Snow")
-                    context.scene.collection.children.link(coll)
-                else:
-                    coll = bpy.data.collections["Snow"]
-                coll.objects.link(snow)
-                context.view_layer.layer_collection.collection.objects.unlink(snow)
-                # add snow material
-                add_material(snow)
-                # parent with object
-                snow.parent = o
-                snow.matrix_parent_inverse = o.matrix_world.inverted()
-                # add snow to list
-                snow_list.append(snow)
-                # update progress bar
-                timer=timer+((100/lenght)/1000)
-            # select created snow
-            for s in snow_list:
-                s.select_set(True)
-            # end progress bar
-            context.window_manager.progress_end()
+        # get list of selected objects except non-mesh objects
+        input_objects = [o for o in context.selected_objects if o.type == 'MESH']
+        snow_list = []
+        # start UI progress bar
+        length = len(input_objects)
+        context.window_manager.progress_begin(0, 10)
+        timer=0
+        for o in input_objects:
+            # timer
+            context.window_manager.progress_update(timer)
+            # duplicate mesh
+            bpy.ops.object.select_all(action='DESELECT')
+            o.select_set(True)
+            context.view_layer.objects.active = o
+            snow_object = o.copy()
+            snow_object.data = o.data.copy()
+            context.collection.objects.link(snow_object)
+            bpy.ops.object.select_all(action='DESELECT')
+            context.view_layer.objects.active = snow_object
+            snow_object.select_set(True)
+            # apply modifiers
+            bpy.ops.object.convert(target='MESH')
+            # get faces data
+            bpy.ops.object.mode_set(mode = 'EDIT')
+            bm_orig = bmesh.from_edit_mesh(snow_object.data)
+            bm = bm_orig.copy()
+            bm.transform(o.matrix_world)
+            bm.normal_update()
+            upper_faces(vertices, bm, snow_object)
+            ballobj = add_metaballs(context, height, snow_object)
+            context.view_layer.objects.active = snow_object
+            surface_area = area(snow_object)
+            snow = add_particles(context, surface_area, height, coverage, snow_object, ballobj)
+            add_modifiers(snow)
+            # place inside collection
+            context.view_layer.active_layer_collection = context.view_layer.layer_collection
+            if "Snow" not in context.scene.collection.children:
+                coll = bpy.data.collections.new("Snow")
+                context.scene.collection.children.link(coll)
+            else:
+                coll = bpy.data.collections["Snow"]
+            coll.objects.link(snow)
+            context.view_layer.layer_collection.collection.objects.unlink(snow)
+            add_material(snow)
+            # parent with object
+            snow.parent = o
+            snow.matrix_parent_inverse = o.matrix_world.inverted()
+            # add snow to list
+            snow_list.append(snow)
+            # update progress bar
+            timer=timer+((100/length)/1000)
+        # select created snow meshes
+        for s in snow_list:
+            s.select_set(True)
+        # end progress bar
+        context.window_manager.progress_end()
 
         return {'FINISHED'}
 
 
-# Add modifiers
 def add_modifiers(snow):
     bpy.ops.object.transform_apply(location=False, scale=True, rotation=False)
     snow.modifiers.new("Decimate", 'DECIMATE')
@@ -141,12 +138,11 @@ def add_modifiers(snow):
     snow.cycles.use_adaptive_subdivision = True
 
 
-# Add particles
-def add_particles(context, a, height, coverage, new_o, ballobj):
+def add_particles(context, surface_area: float, height: float, coverage: float, snow_object: bpy.types.Object, ballobj: bpy.types.Object):
     # generate particles
     number = int(a*50*(height**-2)*((coverage/100)**2))
     bpy.ops.object.particle_system_add()
-    particles = new_o.particle_systems[0]
+    particles = snow_object.particle_systems[0]
     psettings = particles.settings
     psettings.type = 'HAIR'
     psettings.render_type = 'OBJECT'
@@ -166,14 +162,13 @@ def add_particles(context, a, height, coverage, new_o, ballobj):
     snow.scale = [0.09, 0.09, 0.09]
     bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
     bpy.ops.object.select_all(action='DESELECT')
-    new_o.select_set(True)
+    snow_object.select_set(True)
     bpy.ops.object.delete()
     snow.select_set(True)
     return snow
 
 
-# Add metaballs
-def add_metaballs(context, height, new_o):
+def add_metaballs(context, height: float, snow_object: bpy.types.Object) -> bpy.types.Object:
     ball_name = "SnowBall"
     ball = bpy.data.metaballs.new(ball_name)
     ballobj = bpy.data.objects.new(ball_name, ball)
@@ -184,12 +179,10 @@ def add_metaballs(context, height, new_o):
     element.radius = 1.5
     element.stiffness = 0.75
     ballobj.scale = [0.09, 0.09, 0.09]
-    context.view_layer.objects.active = new_o
     return ballobj
 
 
-# Upper faces
-def upper_faces(vertices, bm, new_o):
+def upper_faces(vertices, bm, snow_object: bpy.types.Object):
     # find upper faces
     if vertices:
         selected_faces = [f.index for f in bm.faces if f.select]
@@ -197,7 +190,7 @@ def upper_faces(vertices, bm, new_o):
     bm.free()
     bpy.ops.mesh.select_all(action='DESELECT')
     # select upper faces
-    mesh = bmesh.from_edit_mesh(new_o.data)
+    mesh = bmesh.from_edit_mesh(snow_object.data)
     for f in mesh.faces:
         if vertices:
             if not f.index in selected_faces:
@@ -211,8 +204,7 @@ def upper_faces(vertices, bm, new_o):
     bpy.ops.object.mode_set(mode = 'OBJECT')
 
 
-# Calculate mesh area
-def area(obj):
+def area(obj: bpy.types.Object) -> float:
     bm = bmesh.new()
     bm.from_mesh(obj.data)
     bm.transform(obj.matrix_world)
@@ -221,8 +213,7 @@ def area(obj):
     return area
 
 
-# Add material nodes
-def add_material(obj):
+def add_material(obj: bpy.types.Object):
     mat_name = "Snow"
     # if material doesn't exist, create it
     if mat_name in bpy.data.materials:
@@ -343,7 +334,6 @@ def add_material(obj):
     link.new(mapping.outputs[0], noise2.inputs[0])
     link.new(mapping.outputs[0], noise3.inputs[0])
     link.new(coord.outputs[3], mapping.inputs[0])
-
     # set displacement and add material
     mat.cycles.displacement_method = "DISPLACEMENT"
     obj.data.materials.append(mat)
