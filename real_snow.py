@@ -9,7 +9,7 @@ bl_info = {
     "doc_url": "https://github.com/macio97/Real-Snow",
     "tracker_url": "https://github.com/macio97/Real-Snow/issues",
     "support": "COMMUNITY",
-    "category": "Mesh",
+    "category": "Object",
     }
 
 
@@ -188,9 +188,9 @@ def add_metaballs(context, height: float, snow_object: bpy.types.Object) -> bpy.
 def delete_faces(vertices, bm_copy, snow_object: bpy.types.Object):
     # find upper faces
     if vertices:
-        selected_faces = [f.index for f in bm_copy.faces if f.select]
+        selected_faces = [face.index for face in bm_copy.faces if face.select]
     # based on a certain angle, find all faces not pointing up
-    down_faces = [e.index for e in bm_copy.faces if Vector((0, 0, -1.0)).angle(e.normal, 4.0) < (math.pi/2.0+0.5)]
+    down_faces = [face.index for face in bm_copy.faces if Vector((0, 0, -1.0)).angle(face.normal, 4.0) < (math.pi/2.0+0.5)]
     bm_copy.free()
     bpy.ops.mesh.select_all(action='DESELECT')
     # select upper faces
