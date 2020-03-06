@@ -13,17 +13,17 @@ bl_info = {
     }
 
 
-#Libraries
-import bpy
+# Libraries
 import math
-import bmesh
 import os
+import random
 import time
-from bpy.props import BoolProperty, FloatProperty, IntProperty, PointerProperty
-from random import randint
-from bpy.types import Panel, Operator, PropertyGroup
-from mathutils import Vector
 
+import bpy
+import bmesh
+from bpy.props import BoolProperty, FloatProperty, IntProperty, PointerProperty
+from bpy.types import Operator, Panel, PropertyGroup
+from mathutils import Vector
 
 # Panel
 class REAL_PT_snow(Panel):
@@ -148,7 +148,7 @@ def add_particles(context, surface_area: float, height: float, coverage: float, 
     psettings.type = 'HAIR'
     psettings.render_type = 'OBJECT'
     # generate random number for seed
-    random_seed = randint(0, 1000)
+    random_seed = random.randint(0, 1000)
     particles.seed = random_seed
     # set particles object
     psettings.particle_size = height
