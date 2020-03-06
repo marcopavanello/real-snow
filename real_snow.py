@@ -25,6 +25,7 @@ from bpy.props import BoolProperty, FloatProperty, IntProperty, PointerProperty
 from bpy.types import Operator, Panel, PropertyGroup
 from mathutils import Vector
 
+
 # Panel
 class REAL_PT_snow(Panel):
     bl_space_type = "VIEW_3D"
@@ -69,34 +70,34 @@ class SNOW_OT_Create(Operator):
         vertices = context.scene.snow.vertices
 
         # get list of selected objects except non-mesh objects
-        input_objects = [o for o in context.selected_objects if o.type == 'MESH']
+        input_objects = [obj for obj in context.selected_objects if obj.type == 'MESH']
         snow_list = []
         # start UI progress bar
         length = len(input_objects)
         context.window_manager.progress_begin(0, 10)
         timer=0
-        for o in input_objects:
+        for obj in input_objects:
             # timer
             context.window_manager.progress_update(timer)
             # duplicate mesh
             bpy.ops.object.select_all(action='DESELECT')
-            o.select_set(True)
-            context.view_layer.objects.active = o
-            object_eval = o.evaluated_get(context.view_layer.depsgraph)
+            obj.select_set(True)
+            context.view_layer.objects.active = obj
+            object_eval = obj.evaluated_get(context.view_layer.depsgraph)
             mesh_eval = bpy.data.meshes.new_from_object(object_eval)
             snow_object = bpy.data.objects.new("Snow", mesh_eval)
-            snow_object.matrix_world = o.matrix_world
+            snow_object.matrix_world = obj.matrix_world
             context.collection.objects.link(snow_object)
             bpy.ops.object.select_all(action='DESELECT')
             context.view_layer.objects.active = snow_object
             snow_object.select_set(True)
             bpy.ops.object.mode_set(mode = 'EDIT')
             bm_orig = bmesh.from_edit_mesh(snow_object.data)
-            bm = bm_orig.copy()
-            bm.transform(o.matrix_world)
-            bm.normal_update()
+            bm_copy = bm_orig.copy()
+            bm_copy.transform(obj.matrix_world)
+            bm_copy.normal_update()
             # get faces data
-            delete_faces(vertices, bm, snow_object)
+            delete_faces(vertices, bm_copy, snow_object)
             ballobj = add_metaballs(context, height, snow_object)
             context.view_layer.objects.active = snow_object
             surface_area = area(snow_object)
@@ -113,8 +114,8 @@ class SNOW_OT_Create(Operator):
             context.view_layer.layer_collection.collection.objects.unlink(snow)
             add_material(snow)
             # parent with object
-            snow.parent = o
-            snow.matrix_parent_inverse = o.matrix_world.inverted()
+            snow.parent = obj
+            snow.matrix_parent_inverse = obj.matrix_world.inverted()
             # add snow to list
             snow_list.append(snow)
             # update progress bar
@@ -184,35 +185,35 @@ def add_metaballs(context, height: float, snow_object: bpy.types.Object) -> bpy.
     return ballobj
 
 
-def delete_faces(vertices, bm, snow_object: bpy.types.Object):
+def delete_faces(vertices, bm_copy, snow_object: bpy.types.Object):
     # find upper faces
     if vertices:
-        selected_faces = [f.index for f in bm.faces if f.select]
+        selected_faces = [f.index for f in bm_copy.faces if f.select]
     # based on a certain angle, find all faces not pointing up
-    down_faces = [e.index for e in bm.faces if Vector((0, 0, -1.0)).angle(e.normal, 4.0) < (math.pi/2.0+0.5)]
-    bm.free()
+    down_faces = [e.index for e in bm_copy.faces if Vector((0, 0, -1.0)).angle(e.normal, 4.0) < (math.pi/2.0+0.5)]
+    bm_copy.free()
     bpy.ops.mesh.select_all(action='DESELECT')
     # select upper faces
     mesh = bmesh.from_edit_mesh(snow_object.data)
-    for f in mesh.faces:
+    for face in mesh.faces:
         if vertices:
-            if not f.index in selected_faces:
-                f.select = True
-        if f.index in down_faces:
-            f.select = True
+            if not face.index in selected_faces:
+                face.select = True
+        if face.index in down_faces:
+            face.select = True
     # delete unneccessary faces
-    faces_select = [f for f in mesh.faces if f.select]
+    faces_select = [face for face in mesh.faces if face.select]
     bmesh.ops.delete(mesh, geom=faces_select, context='FACES_KEEP_BOUNDARY')
     mesh.free()
     bpy.ops.object.mode_set(mode = 'OBJECT')
 
 
 def area(obj: bpy.types.Object) -> float:
-    bm = bmesh.new()
-    bm.from_mesh(obj.data)
-    bm.transform(obj.matrix_world)
-    area = sum(f.calc_area() for f in bm.faces)
-    bm.free
+    bm_obj = bmesh.new()
+    bm_obj.from_mesh(obj.data)
+    bm_obj.transform(obj.matrix_world)
+    area = sum(face.calc_area() for face in bm_obj.faces)
+    bm_obj.free
     return area
 
 
