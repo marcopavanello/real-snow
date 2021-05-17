@@ -2,12 +2,12 @@
 bl_info = {
     "name": "Real Snow",
     "description": "Generate snow mesh",
-    "author": "Wolf <wolf.art3d@gmail.com>",
-    "version": (1, 1),
+    "author": "Wolf",
+    "version": (1, 2),
     "blender": (2, 83, 0),
     "location": "View 3D > Properties Panel",
-    "doc_url": "https://github.com/macio97/Real-Snow",
-    "tracker_url": "https://github.com/macio97/Real-Snow/issues",
+    "doc_url": "https://github.com/marcopavanello/real-snow",
+    "tracker_url": "https://github.com/marcopavanello/real-snow/issues",
     "support": "COMMUNITY",
     "category": "Object",
     }
