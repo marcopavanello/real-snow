@@ -2,7 +2,7 @@
 bl_info = {
     "name": "Real Snow",
     "description": "Generate snow mesh",
-    "author": "Wolf",
+    "author": "Marco Pavanello, Drew Perttula",
     "version": (1, 2),
     "blender": (2, 83, 0),
     "location": "View 3D > Properties Panel",
@@ -188,16 +188,16 @@ def add_metaballs(context, height: float, snow_object: bpy.types.Object) -> bpy.
 def delete_faces(vertices, bm_copy, snow_object: bpy.types.Object):
     # Find upper faces
     if vertices:
-        selected_faces = [face.index for face in bm_copy.faces if face.select]
+        selected_faces = set(face.index for face in bm_copy.faces if face.select)
     # Based on a certain angle, find all faces not pointing up
-    down_faces = [face.index for face in bm_copy.faces if Vector((0, 0, -1.0)).angle(face.normal, 4.0) < (math.pi/2.0+0.5)]
+    down_faces = set(face.index for face in bm_copy.faces if Vector((0, 0, -1.0)).angle(face.normal, 4.0) < (math.pi/2.0+0.5))
     bm_copy.free()
     bpy.ops.mesh.select_all(action='DESELECT')
     # Select upper faces
     mesh = bmesh.from_edit_mesh(snow_object.data)
     for face in mesh.faces:
         if vertices:
-            if not face.index in selected_faces:
+            if face.index not in selected_faces:
                 face.select = True
         if face.index in down_faces:
             face.select = True
