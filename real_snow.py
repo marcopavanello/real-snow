@@ -75,7 +75,7 @@ class SNOW_OT_Create(Operator):
         # Start UI progress bar
         length = len(input_objects)
         context.window_manager.progress_begin(0, 10)
-        timer=0
+        timer = 0
         for obj in input_objects:
             # Timer
             context.window_manager.progress_update(timer)
@@ -142,7 +142,7 @@ def add_modifiers(snow):
 
 def add_particles(context, surface_area: float, height: float, coverage: float, snow_object: bpy.types.Object, ballobj: bpy.types.Object):
     # Approximate the number of particles to be emitted
-    number = int(surface_area*50*(height**-2)*((coverage/100)**2))
+    number = int(surface_area * 50 * (height ** -2) * ((coverage / 100) ** 2))
     bpy.ops.object.particle_system_add()
     particles = snow_object.particle_systems[0]
     psettings = particles.settings
@@ -176,7 +176,7 @@ def add_metaballs(context, height: float, snow_object: bpy.types.Object) -> bpy.
     ballobj = bpy.data.objects.new(ball_name, ball)
     bpy.context.scene.collection.objects.link(ballobj)
     # These settings have proven to work on a large amount of scenarios
-    ball.resolution = 0.7*height+0.3
+    ball.resolution = 0.7 * height + 0.3
     ball.threshold = 1.3
     element = ball.elements.new()
     element.radius = 1.5
@@ -190,7 +190,7 @@ def delete_faces(vertices, bm_copy, snow_object: bpy.types.Object):
     if vertices:
         selected_faces = set(face.index for face in bm_copy.faces if face.select)
     # Based on a certain angle, find all faces not pointing up
-    down_faces = set(face.index for face in bm_copy.faces if Vector((0, 0, -1.0)).angle(face.normal, 4.0) < (math.pi/2.0+0.5))
+    down_faces = set(face.index for face in bm_copy.faces if Vector((0, 0, -1.0)).angle(face.normal, 4.0) < (math.pi / 2.0 + 0.5))
     bm_copy.free()
     bpy.ops.mesh.select_all(action='DESELECT')
     # Select upper faces
